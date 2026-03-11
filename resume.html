@@ -224,10 +224,8 @@
 
     <div class="toast" id="toast"></div>
 
+    <script src="js/config.js"></script>
     <script>
-        const SUPABASE_URL = 'https://zmjltryycvtlglboluar.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inptamx0cnl5Y3Z0bGdsYm9sdWFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwNTAxODEsImV4cCI6MjA4ODYyNjE4MX0.DqIML5MNGdy7Y3PkPHUNRcXvEU9drHoj5kYLChZyx-E';
-        
         let supabaseClient = null;
         let currentUser = null;
         let resumeId = null;
@@ -241,7 +239,13 @@
 
         function initSupabase() {
             if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
-                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                if (!CONFIG || !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY) {
+                    console.error('Config not loaded. Please copy js/config.example.js to js/config.js and fill in your values.');
+                    document.getElementById('authMessage').className = 'auth-error';
+                    document.getElementById('authMessage').textContent = '配置文件缺失，请查看 js/config.example.js';
+                    return false;
+                }
+                supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
                 console.log('Supabase initialized successfully');
                 return true;
             } else {
