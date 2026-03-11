@@ -5,7 +5,6 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const envPath = path.join(__dirname, '.env');
 const configPath = path.join(__dirname, 'js', 'config.js');
 
 function parseEnv(content) {
@@ -25,16 +24,25 @@ function parseEnv(content) {
 
 function buildConfig() {
     try {
-        if (!fs.existsSync(envPath)) {
-            console.error('.env file not found! Please copy .env.example to .env and fill in your values.');
-            process.exit(1);
+        let supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+        let supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
+        
+        if (!supabaseUrl || !supabaseKey) {
+            const envPath = path.join(__dirname, '.env');
+            if (fs.existsSync(envPath)) {
+                const envContent = fs.readFileSync(envPath, 'utf-8');
+                const env = parseEnv(envContent);
+                supabaseUrl = supabaseUrl || env.VITE_SUPABASE_URL || '';
+                supabaseKey = supabaseKey || env.VITE_SUPABASE_ANON_KEY || '';
+            }
         }
         
-        const envContent = fs.readFileSync(envPath, 'utf-8');
-        const env = parseEnv(envContent);
-        
-        const supabaseUrl = env.VITE_SUPABASE_URL || '';
-        const supabaseKey = env.VITE_SUPABASE_ANON_KEY || '';
+        if (!supabaseUrl || !supabaseKey) {
+            console.error('Missing Supabase configuration!');
+            console.error('Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables');
+            console.error('Or create a .env file with these values');
+            process.exit(1);
+        }
         
         const configContent = `// 此文件由 build.js 自动生成，请勿手动修改
 const CONFIG = {
