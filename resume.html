@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简历编辑器</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .toolbar { max-width: 900px; margin: 0 auto 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .toolbar button { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.3s; }
+        .btn-primary { background: #fff; color: #667eea; }
+        .btn-primary:hover { background: #f0f0f0; transform: translateY(-2px); }
+        .btn-success { background: #27ae60; color: #fff; }
+        .btn-success:hover { background: #219a52; }
+        .btn-warning { background: #f39c12; color: #fff; }
+        .btn-warning:hover { background: #d68910; }
+        .btn-danger { background: #e74c3c; color: #fff; }
+        .btn-danger:hover { background: #c0392b; }
+        .btn-pdf { background: #9b59b6; color: #fff; }
+        .btn-pdf:hover { background: #8e44ad; }
+        .container { max-width: 900px; margin: 0 auto; background: #fff; border-radius: 20px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%); color: #fff; padding: 40px; text-align: center; }
+        .header-edit { display: flex; flex-direction: column; gap: 15px; align-items: center; }
+        .avatar { width: 120px; height: 120px; border-radius: 50%; border: 4px solid #fff; background: #ecf0f1; display: flex; align-items: center; justify-content: center; font-size: 48px; color: #bdc3c7; cursor: pointer; transition: transform 0.3s; }
+        .avatar:hover { transform: scale(1.05); }
+        .header-input { background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 8px; padding: 10px 20px; color: #fff; font-size: 16px; text-align: center; width: 100%; max-width: 400px; }
+        .header-input::placeholder { color: rgba(255, 255, 255, 0.7); }
+        .header-input:focus { outline: none; border-color: #fff; background: rgba(255, 255, 255, 0.3); }
+        .name-input { font-size: 28px; font-weight: bold; }
+        .contact-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        .contact-input { background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 8px; padding: 8px 15px; color: #fff; font-size: 14px; width: 200px; }
+        .contact-input::placeholder { color: rgba(255, 255, 255, 0.7); }
+        .contact-input:focus { outline: none; border-color: #fff; }
+        .content { padding: 30px; }
+        .section { margin-bottom: 30px; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .section-title { font-size: 20px; color: #2c3e50; font-weight: bold; padding-bottom: 10px; border-bottom: 3px solid #3498db; display: flex; align-items: center; gap: 10px; }
+        .section-title::before { content: ''; width: 5px; height: 22px; background: #3498db; border-radius: 3px; }
+        .btn-add { padding: 8px 16px; background: #3498db; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; transition: background 0.3s; }
+        .btn-add:hover { background: #2980b9; }
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .info-item { display: flex; gap: 10px; align-items: center; }
+        .info-label { color: #7f8c8d; min-width: 80px; font-size: 14px; }
+        .info-input { flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; transition: border-color 0.3s; }
+        .info-input:focus { outline: none; border-color: #3498db; }
+        .textarea-input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; line-height: 1.8; resize: vertical; min-height: 100px; font-family: inherit; }
+        .textarea-input:focus { outline: none; border-color: #3498db; }
+        .item-card { background: #f8f9fa; border-radius: 10px; padding: 20px; margin-bottom: 15px; position: relative; }
+        .item-card:last-child { margin-bottom: 0; }
+        .item-row { display: flex; gap: 15px; margin-bottom: 12px; flex-wrap: wrap; }
+        .item-row:last-child { margin-bottom: 0; }
+        .item-input { flex: 1; min-width: 150px; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .item-input:focus { outline: none; border-color: #3498db; }
+        .item-input-large { flex: 2; }
+        .btn-delete { position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; border: none; background: #e74c3c; color: #fff; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
+        .btn-delete:hover { background: #c0392b; }
+        .skills-container { display: flex; flex-wrap: wrap; gap: 10px; }
+        .skill-input-wrapper { display: flex; gap: 10px; flex-wrap: wrap; }
+        .skill-input { padding: 10px 15px; border: 1px solid #ddd; border-radius: 25px; font-size: 14px; width: 150px; }
+        .skill-input:focus { outline: none; border-color: #3498db; }
+        .skill-tag { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; padding: 8px 15px; border-radius: 25px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+        .skill-tag button { background: none; border: none; color: #fff; cursor: pointer; font-size: 16px; opacity: 0.8; }
+        .skill-tag button:hover { opacity: 1; }
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #2c3e50; color: #fff; padding: 15px 30px; border-radius: 8px; font-size: 14px; z-index: 1000; opacity: 0; transition: opacity 0.3s; }
+        .toast.show { opacity: 1; }
+        .auth-container { max-width: 400px; margin: 100px auto; background: #fff; border-radius: 20px; padding: 40px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); }
+        .auth-title { text-align: center; font-size: 24px; color: #2c3e50; margin-bottom: 30px; }
+        .auth-tabs { display: flex; margin-bottom: 30px; border-bottom: 2px solid #ecf0f1; }
+        .auth-tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; color: #7f8c8d; font-weight: 500; transition: all 0.3s; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+        .auth-tab.active { color: #3498db; border-bottom-color: #3498db; }
+        .auth-form { display: none; }
+        .auth-form.active { display: block; }
+        .auth-input { width: 100%; padding: 15px; border: 2px solid #ecf0f1; border-radius: 10px; font-size: 14px; margin-bottom: 15px; transition: border-color 0.3s; }
+        .auth-input:focus { outline: none; border-color: #3498db; }
+        .auth-btn { width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: 500; cursor: pointer; transition: transform 0.3s; }
+        .auth-btn:hover { transform: translateY(-2px); }
+        .user-info { display: flex; align-items: center; gap: 15px; color: #fff; font-size: 14px; }
+        .btn-logout { background: rgba(255, 255, 255, 0.2); color: #fff; border: 1px solid rgba(255, 255, 255, 0.3); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .btn-logout:hover { background: rgba(255, 255, 255, 0.3); }
+        .hidden { display: none !important; }
+        .auth-error { color: #e74c3c; margin-top: 15px; text-align: center; font-size: 14px; }
+        .auth-success { color: #27ae60; margin-top: 15px; text-align: center; font-size: 14px; }
+        .loading { text-align: center; padding: 20px; color: #7f8c8d; }
+        @media print {
+            body { background: #fff; padding: 0; }
+            .toolbar { display: none !important; }
+            .container { box-shadow: none; border-radius: 0; max-width: 100%; }
+            .btn-delete, .btn-add { display: none !important; }
+            .item-card { background: transparent; padding: 10px 0; page-break-inside: avoid; }
+            .section { page-break-inside: avoid; }
+            .header-input, .contact-input, .info-input, .textarea-input, .item-input { border: none !important; background: transparent !important; padding: 2px 5px !important; }
+            .skill-input-wrapper { display: none; }
+        }
+        @media (max-width: 600px) {
+            .info-grid { grid-template-columns: 1fr; }
+            .item-row { flex-direction: column; }
+            .item-input { width: 100%; }
+            .contact-row { flex-direction: column; align-items: center; }
+            .contact-input { width: 100%; max-width: 300px; }
+            .content { padding: 20px; }
+            .toolbar { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <div id="authSection" class="auth-container">
+        <h2 class="auth-title">简历编辑器</h2>
+        <div class="auth-tabs">
+            <div class="auth-tab active" id="loginTab" onclick="switchTab('login')">登录</div>
+            <div class="auth-tab" id="registerTab" onclick="switchTab('register')">注册</div>
+        </div>
+        <form id="loginForm" class="auth-form active" onsubmit="handleLogin(event)">
+            <input type="email" class="auth-input" id="loginEmail" placeholder="邮箱" required>
+            <input type="password" class="auth-input" id="loginPassword" placeholder="密码" required>
+            <button type="submit" class="auth-btn">登录</button>
+        </form>
+        <form id="registerForm" class="auth-form" onsubmit="handleRegister(event)">
+            <input type="email" class="auth-input" id="registerEmail" placeholder="邮箱" required>
+            <input type="password" class="auth-input" id="registerPassword" placeholder="密码（至少6位）" required minlength="6">
+            <button type="submit" class="auth-btn">注册</button>
+        </form>
+        <div id="authMessage"></div>
+    </div>
+
+    <div id="mainSection" class="hidden">
+        <div class="toolbar">
+            <div class="user-info">
+                <span id="userEmail"></span>
+                <button class="btn-logout" onclick="handleLogout()">退出登录</button>
+            </div>
+        </div>
+        <div class="toolbar">
+            <button class="btn-primary" onclick="toggleMode()">切换预览/编辑</button>
+            <button class="btn-success" onclick="saveData()">保存数据</button>
+            <button class="btn-pdf" onclick="exportPDF()">导出PDF</button>
+            <button class="btn-warning" onclick="exportHTML()">导出HTML</button>
+            <button class="btn-danger" onclick="resetData()">重置数据</button>
+        </div>
+        <div class="container" id="resumeContainer">
+            <div class="header">
+                <div class="header-edit">
+                    <div class="avatar" onclick="changeAvatar()" id="avatar"></div>
+                    <input type="text" class="header-input name-input" id="name" placeholder="请输入姓名" value="">
+                    <input type="text" class="header-input" id="jobTitle" placeholder="请输入职位" value="">
+                    <div class="contact-row">
+                        <input type="text" class="contact-input" id="phone" placeholder="电话" value="">
+                        <input type="text" class="contact-input" id="email" placeholder="邮箱" value="">
+                        <input type="text" class="contact-input" id="address" placeholder="地址" value="">
+                    </div>
+                </div>
+            </div>
+            <div class="content">
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">基本信息</h2>
+                    </div>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">出生年月：</span>
+                            <input type="text" class="info-input" id="birthday" value="" placeholder="如：1990年5月">
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">工作年限：</span>
+                            <input type="text" class="info-input" id="workYears" value="" placeholder="如：5年">
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">学历：</span>
+                            <input type="text" class="info-input" id="education" value="" placeholder="如：本科">
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">求职意向：</span>
+                            <input type="text" class="info-input" id="jobIntention" value="" placeholder="如：软件工程师">
+                        </div>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">个人简介</h2>
+                    </div>
+                    <textarea class="textarea-input" id="summary" rows="4" placeholder="请输入个人简介..."></textarea>
+                </div>
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">教育背景</h2>
+                        <button class="btn-add" onclick="addEducation()">+ 添加教育经历</button>
+                    </div>
+                    <div id="educationList"></div>
+                </div>
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">工作经历</h2>
+                        <button class="btn-add" onclick="addWork()">+ 添加工作经历</button>
+                    </div>
+                    <div id="workList"></div>
+                </div>
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">项目经历</h2>
+                        <button class="btn-add" onclick="addProject()">+ 添加项目经历</button>
+                    </div>
+                    <div id="projectList"></div>
+                </div>
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">获奖情况</h2>
+                        <button class="btn-add" onclick="addAward()">+ 添加获奖经历</button>
+                    </div>
+                    <div id="awardList"></div>
+                </div>
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">专业技能</h2>
+                    </div>
+                    <div class="skill-input-wrapper">
+                        <input type="text" class="skill-input" id="skillInput" placeholder="输入技能后按回车添加">
+                    </div>
+                    <div class="skills-container" id="skillsList" style="margin-top: 15px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="js/config.js"></script>
+    <script>
+        let supabaseClient = null;
+        let currentUser = null;
+        let resumeId = null;
+        let isPreviewMode = false;
+
+        let resumeData = {
+            avatar: '', name: '', jobTitle: '', phone: '', email: '', address: '',
+            birthday: '', workYears: '', education: '', jobIntention: '', summary: '',
+            educationList: [], workList: [], projectList: [], awardList: [], skills: []
+        };
+
+        function initSupabase() {
+            if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+                if (!CONFIG || !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY) {
+                    console.error('Config not loaded. Please copy js/config.example.js to js/config.js and fill in your values.');
+                    document.getElementById('authMessage').className = 'auth-error';
+                    document.getElementById('authMessage').textContent = '配置文件缺失，请查看 js/config.example.js';
+                    return false;
+                }
+                supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+                console.log('Supabase initialized successfully');
+                return true;
+            } else {
+                console.error('Supabase SDK not loaded');
+                document.getElementById('authMessage').className = 'auth-error';
+                document.getElementById('authMessage').textContent = 'SDK加载失败，请刷新页面重试';
+                return false;
+            }
+        }
+
+        async function init() {
+            if (!initSupabase()) return;
+            
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                showMainSection();
+                await loadFromSupabase();
+            }
+            
+            supabaseClient.auth.onAuthStateChange((event, session) => {
+                if (event === 'SIGNED_IN' && session) {
+                    currentUser = session.user;
+                    showMainSection();
+                    loadFromSupabase();
+                } else if (event === 'SIGNED_OUT') {
+                    currentUser = null;
+                    resumeId = null;
+                    showAuthSection();
+                }
+            });
+        }
+
+        function showAuthSection() {
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('mainSection').classList.add('hidden');
+        }
+
+        function showMainSection() {
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('mainSection').classList.remove('hidden');
+            document.getElementById('userEmail').textContent = currentUser?.email || '';
+        }
+
+        function switchTab(tab) {
+            document.getElementById('loginTab').classList.remove('active');
+            document.getElementById('registerTab').classList.remove('active');
+            document.getElementById('loginForm').classList.remove('active');
+            document.getElementById('registerForm').classList.remove('active');
+            document.getElementById('authMessage').textContent = '';
+            
+            if (tab === 'login') {
+                document.getElementById('loginTab').classList.add('active');
+                document.getElementById('loginForm').classList.add('active');
+            } else {
+                document.getElementById('registerTab').classList.add('active');
+                document.getElementById('registerForm').classList.add('active');
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            if (!supabaseClient) {
+                document.getElementById('authMessage').className = 'auth-error';
+                document.getElementById('authMessage').textContent = '系统未初始化，请刷新页面';
+                return;
+            }
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const msgDiv = document.getElementById('authMessage');
+            msgDiv.className = 'auth-error';
+            msgDiv.textContent = '登录中...';
+            
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) {
+                msgDiv.textContent = error.message;
+            } else {
+                msgDiv.textContent = '';
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            if (!supabaseClient) {
+                document.getElementById('authMessage').className = 'auth-error';
+                document.getElementById('authMessage').textContent = '系统未初始化，请刷新页面';
+                return;
+            }
+            
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const msgDiv = document.getElementById('authMessage');
+            msgDiv.className = 'auth-error';
+            msgDiv.textContent = '注册中...';
+            
+            const { data, error } = await supabaseClient.auth.signUp({ email, password });
+            if (error) {
+                msgDiv.textContent = error.message;
+            } else {
+                msgDiv.className = 'auth-success';
+                msgDiv.textContent = '注册成功！请查收验证邮件后登录。';
+            }
+        }
+
+        async function handleLogout() {
+            if (supabaseClient) {
+                await supabaseClient.auth.signOut();
+            }
+        }
+
+        async function loadFromSupabase() {
+            if (!currentUser || !supabaseClient) return;
+            
+            const { data, error } = await supabaseClient.from('resumes').select('*').eq('user_id', currentUser.id).single();
+            
+            if (error && error.code !== 'PGRST116') {
+                console.error('Load error:', error);
+            }
+            
+            if (data) {
+                resumeId = data.id;
+                resumeData = {
+                    avatar: data.avatar || '', name: data.name || '', jobTitle: data.job_title || '',
+                    phone: data.phone || '', email: data.email || '', address: data.address || '',
+                    birthday: data.birthday || '', workYears: data.work_years || '',
+                    education: data.education_level || '', jobIntention: data.job_intention || '',
+                    summary: data.summary || '', educationList: data.education_list || [],
+                    workList: data.work_list || [], projectList: data.project_list || [],
+                    awardList: data.award_list || [], skills: data.skills || []
+                };
+                renderAll();
+            } else {
+                resetResumeData();
+                renderAll();
+            }
+        }
+
+        async function saveToSupabase() {
+            if (!currentUser || !supabaseClient) { showToast('请先登录！'); return; }
+            collectData();
+            
+            const dbData = {
+                user_id: currentUser.id, avatar: resumeData.avatar, name: resumeData.name,
+                job_title: resumeData.jobTitle, phone: resumeData.phone, email: resumeData.email,
+                address: resumeData.address, birthday: resumeData.birthday, work_years: resumeData.workYears,
+                education_level: resumeData.education, job_intention: resumeData.jobIntention,
+                summary: resumeData.summary, education_list: resumeData.educationList,
+                work_list: resumeData.workList, project_list: resumeData.projectList,
+                award_list: resumeData.awardList, skills: resumeData.skills
+            };
+
+            let result;
+            if (resumeId) {
+                result = await supabaseClient.from('resumes').update(dbData).eq('id', resumeId);
+            } else {
+                result = await supabaseClient.from('resumes').insert(dbData).select().single();
+                if (result.data) resumeId = result.data.id;
+            }
+
+            if (result.error) {
+                showToast('保存失败：' + result.error.message);
+            } else {
+                showToast('数据已保存到云端！');
+            }
+        }
+
+        function resetResumeData() {
+            resumeData = {
+                avatar: '', name: '', jobTitle: '', phone: '', email: '', address: '',
+                birthday: '', workYears: '', education: '', jobIntention: '', summary: '',
+                educationList: [], workList: [], projectList: [], awardList: [], skills: []
+            };
+        }
+
+        async function resetData() {
+            if (confirm('确定要重置所有数据吗？')) {
+                resetResumeData();
+                renderAll();
+                if (currentUser && resumeId && supabaseClient) {
+                    await supabaseClient.from('resumes').delete().eq('id', resumeId);
+                    resumeId = null;
+                }
+                showToast('数据已重置！');
+            }
+        }
+
+        function saveData() { saveToSupabase(); }
+
+        function collectData() {
+            resumeData.avatar = document.getElementById('avatar').textContent;
+            resumeData.name = document.getElementById('name').value;
+            resumeData.jobTitle = document.getElementById('jobTitle').value;
+            resumeData.phone = document.getElementById('phone').value;
+            resumeData.email = document.getElementById('email').value;
+            resumeData.address = document.getElementById('address').value;
+            resumeData.birthday = document.getElementById('birthday').value;
+            resumeData.workYears = document.getElementById('workYears').value;
+            resumeData.education = document.getElementById('education').value;
+            resumeData.jobIntention = document.getElementById('jobIntention').value;
+            resumeData.summary = document.getElementById('summary').value;
+        }
+
+        function renderAll() {
+            document.getElementById('avatar').textContent = resumeData.avatar;
+            document.getElementById('name').value = resumeData.name;
+            document.getElementById('jobTitle').value = resumeData.jobTitle;
+            document.getElementById('phone').value = resumeData.phone;
+            document.getElementById('email').value = resumeData.email;
+            document.getElementById('address').value = resumeData.address;
+            document.getElementById('birthday').value = resumeData.birthday;
+            document.getElementById('workYears').value = resumeData.workYears;
+            document.getElementById('education').value = resumeData.education;
+            document.getElementById('jobIntention').value = resumeData.jobIntention;
+            document.getElementById('summary').value = resumeData.summary;
+            renderEducationList(); renderWorkList(); renderProjectList(); renderAwardList(); renderSkills();
+        }
+
+        function renderEducationList() {
+            const container = document.getElementById('educationList');
+            container.innerHTML = resumeData.educationList.map((item, index) => `
+                <div class="item-card">
+                    <button class="btn-delete" onclick="deleteEducation(${index})">×</button>
+                    <div class="item-row">
+                        <input type="text" class="item-input item-input-large" value="${item.school}" placeholder="学校名称" onchange="updateEducation(${index}, 'school', this.value)">
+                        <input type="text" class="item-input" value="${item.major}" placeholder="专业" onchange="updateEducation(${index}, 'major', this.value)">
+                        <input type="text" class="item-input" value="${item.degree}" placeholder="学历" onchange="updateEducation(${index}, 'degree', this.value)">
+                    </div>
+                    <div class="item-row">
+                        <input type="text" class="item-input" value="${item.startTime}" placeholder="开始时间" onchange="updateEducation(${index}, 'startTime', this.value)">
+                        <input type="text" class="item-input" value="${item.endTime}" placeholder="结束时间" onchange="updateEducation(${index}, 'endTime', this.value)">
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addEducation() { resumeData.educationList.push({ school: '', major: '', degree: '', startTime: '', endTime: '' }); renderEducationList(); }
+        function deleteEducation(index) { resumeData.educationList.splice(index, 1); renderEducationList(); }
+        function updateEducation(index, field, value) { resumeData.educationList[index][field] = value; }
+
+        function renderWorkList() {
+            const container = document.getElementById('workList');
+            container.innerHTML = resumeData.workList.map((item, index) => `
+                <div class="item-card">
+                    <button class="btn-delete" onclick="deleteWork(${index})">×</button>
+                    <div class="item-row">
+                        <input type="text" class="item-input item-input-large" value="${item.company}" placeholder="公司名称" onchange="updateWork(${index}, 'company', this.value)">
+                        <input type="text" class="item-input" value="${item.position}" placeholder="职位" onchange="updateWork(${index}, 'position', this.value)">
+                    </div>
+                    <div class="item-row">
+                        <input type="text" class="item-input" value="${item.startTime}" placeholder="开始时间" onchange="updateWork(${index}, 'startTime', this.value)">
+                        <input type="text" class="item-input" value="${item.endTime}" placeholder="结束时间" onchange="updateWork(${index}, 'endTime', this.value)">
+                    </div>
+                    <div class="item-row">
+                        <textarea class="textarea-input" placeholder="工作描述" onchange="updateWork(${index}, 'description', this.value)">${item.description}</textarea>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addWork() { resumeData.workList.push({ company: '', position: '', startTime: '', endTime: '', description: '' }); renderWorkList(); }
+        function deleteWork(index) { resumeData.workList.splice(index, 1); renderWorkList(); }
+        function updateWork(index, field, value) { resumeData.workList[index][field] = value; }
+
+        function renderProjectList() {
+            const container = document.getElementById('projectList');
+            container.innerHTML = resumeData.projectList.map((item, index) => `
+                <div class="item-card">
+                    <button class="btn-delete" onclick="deleteProject(${index})">×</button>
+                    <div class="item-row">
+                        <input type="text" class="item-input item-input-large" value="${item.name}" placeholder="项目名称" onchange="updateProject(${index}, 'name', this.value)">
+                    </div>
+                    <div class="item-row">
+                        <textarea class="textarea-input" placeholder="项目描述" onchange="updateProject(${index}, 'description', this.value)">${item.description}</textarea>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addProject() { resumeData.projectList.push({ name: '', description: '' }); renderProjectList(); }
+        function deleteProject(index) { resumeData.projectList.splice(index, 1); renderProjectList(); }
+        function updateProject(index, field, value) { resumeData.projectList[index][field] = value; }
+
+        function renderAwardList() {
+            const container = document.getElementById('awardList');
+            container.innerHTML = resumeData.awardList.map((item, index) => `
+                <div class="item-card">
+                    <button class="btn-delete" onclick="deleteAward(${index})">×</button>
+                    <div class="item-row">
+                        <input type="text" class="item-input item-input-large" value="${item.name}" placeholder="奖项名称" onchange="updateAward(${index}, 'name', this.value)">
+                        <input type="text" class="item-input" value="${item.org}" placeholder="颁发机构" onchange="updateAward(${index}, 'org', this.value)">
+                        <input type="text" class="item-input" value="${item.time}" placeholder="获奖时间" onchange="updateAward(${index}, 'time', this.value)">
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addAward() { resumeData.awardList.push({ name: '', org: '', time: '' }); renderAwardList(); }
+        function deleteAward(index) { resumeData.awardList.splice(index, 1); renderAwardList(); }
+        function updateAward(index, field, value) { resumeData.awardList[index][field] = value; }
+
+        function renderSkills() {
+            const container = document.getElementById('skillsList');
+            container.innerHTML = resumeData.skills.map((skill, index) => `
+                <span class="skill-tag">${skill}<button onclick="deleteSkill(${index})">×</button></span>
+            `).join('');
+        }
+
+        function deleteSkill(index) { resumeData.skills.splice(index, 1); renderSkills(); }
+
+        document.getElementById('skillInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && this.value.trim()) {
+                resumeData.skills.push(this.value.trim());
+                this.value = '';
+                renderSkills();
+            }
+        });
+
+        function changeAvatar() {
+            const newAvatar = prompt('请输入头像文字（1-2个字）：', resumeData.avatar);
+            if (newAvatar && newAvatar.trim()) {
+                resumeData.avatar = newAvatar.trim().substring(0, 2);
+                document.getElementById('avatar').textContent = resumeData.avatar;
+            }
+        }
+
+        function toggleMode() {
+            isPreviewMode = !isPreviewMode;
+            const container = document.getElementById('resumeContainer');
+            if (isPreviewMode) {
+                collectData();
+                container.classList.add('preview-mode');
+                document.querySelectorAll('#resumeContainer input, #resumeContainer textarea').forEach(el => el.readOnly = true);
+            } else {
+                container.classList.remove('preview-mode');
+                document.querySelectorAll('#resumeContainer input, #resumeContainer textarea').forEach(el => el.readOnly = false);
+            }
+        }
+
+        function exportHTML() {
+            collectData();
+            const htmlContent = generateExportHTML();
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${resumeData.name || '简历'}.html`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('简历已导出！');
+        }
+
+        function exportPDF() {
+            collectData();
+            const printContent = generateExportHTML();
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            printWindow.onload = function() { printWindow.print(); };
+        }
+
+        function generateExportHTML() {
+            return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${resumeData.name || '个人简历'}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 40px 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: #fff; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%); color: #fff; padding: 50px 40px; text-align: center; }
+        .avatar { width: 150px; height: 150px; border-radius: 50%; border: 5px solid #fff; margin: 0 auto 20px; background: #ecf0f1; display: flex; align-items: center; justify-content: center; font-size: 60px; color: #bdc3c7; }
+        .name { font-size: 36px; font-weight: bold; margin-bottom: 10px; }
+        .title { font-size: 18px; opacity: 0.9; margin-bottom: 20px; }
+        .contact-info { display: flex; justify-content: center; flex-wrap: wrap; gap: 20px; font-size: 14px; }
+        .contact-item { display: flex; align-items: center; gap: 8px; }
+        .contact-item::before { content: '●'; font-size: 8px; }
+        .content { padding: 40px; }
+        .section { margin-bottom: 35px; }
+        .section:last-child { margin-bottom: 0; }
+        .section-title { font-size: 22px; color: #2c3e50; font-weight: bold; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 3px solid #3498db; display: flex; align-items: center; gap: 10px; }
+        .section-title::before { content: ''; width: 5px; height: 25px; background: #3498db; border-radius: 3px; }
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .info-item { display: flex; gap: 10px; }
+        .info-label { color: #7f8c8d; min-width: 80px; }
+        .info-value { color: #2c3e50; font-weight: 500; }
+        .summary-text { color: #7f8c8d; line-height: 1.8; text-indent: 2em; }
+        .experience-item { margin-bottom: 25px; padding-left: 20px; border-left: 3px solid #3498db; }
+        .experience-item:last-child { margin-bottom: 0; }
+        .experience-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; flex-wrap: wrap; gap: 10px; }
+        .experience-company { font-size: 18px; font-weight: bold; color: #2c3e50; }
+        .experience-position { color: #3498db; font-weight: 500; margin-left: 10px; }
+        .experience-time { color: #95a5a6; font-size: 14px; }
+        .experience-desc { color: #7f8c8d; line-height: 1.8; }
+        .education-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px dashed #ecf0f1; }
+        .education-item:last-child { border-bottom: none; }
+        .education-school { font-size: 18px; font-weight: bold; color: #2c3e50; }
+        .education-major { color: #7f8c8d; margin-top: 5px; }
+        .education-time { color: #95a5a6; font-size: 14px; }
+        .project-item { margin-bottom: 20px; padding: 20px; background: #f8f9fa; border-radius: 10px; }
+        .project-item:last-child { margin-bottom: 0; }
+        .project-name { font-size: 18px; font-weight: bold; color: #2c3e50; margin-bottom: 10px; }
+        .project-desc { color: #7f8c8d; line-height: 1.8; }
+        .award-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px dashed #ecf0f1; }
+        .award-item:last-child { border-bottom: none; }
+        .award-name { font-size: 16px; font-weight: bold; color: #2c3e50; }
+        .award-org { color: #7f8c8d; margin-top: 5px; }
+        .award-time { color: #95a5a6; font-size: 14px; }
+        .skills-container { display: flex; flex-wrap: wrap; gap: 12px; }
+        .skill-tag { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; padding: 8px 20px; border-radius: 25px; font-size: 14px; font-weight: 500; }
+        @media (max-width: 600px) { .info-grid { grid-template-columns: 1fr; } .experience-header { flex-direction: column; align-items: flex-start; } .contact-info { flex-direction: column; align-items: center; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="avatar">${resumeData.avatar}</div>
+            <h1 class="name">${resumeData.name || '姓名'}</h1>
+            <p class="title">${resumeData.jobTitle || '职位'}</p>
+            <div class="contact-info">
+                <div class="contact-item">电话：${resumeData.phone || ''}</div>
+                <div class="contact-item">邮箱：${resumeData.email || ''}</div>
+                <div class="contact-item">地址：${resumeData.address || ''}</div>
+            </div>
+        </div>
+        <div class="content">
+            <div class="section">
+                <h2 class="section-title">基本信息</h2>
+                <div class="info-grid">
+                    <div class="info-item"><span class="info-label">出生年月：</span><span class="info-value">${resumeData.birthday || ''}</span></div>
+                    <div class="info-item"><span class="info-label">工作年限：</span><span class="info-value">${resumeData.workYears || ''}</span></div>
+                    <div class="info-item"><span class="info-label">学历：</span><span class="info-value">${resumeData.education || ''}</span></div>
+                    <div class="info-item"><span class="info-label">求职意向：</span><span class="info-value">${resumeData.jobIntention || ''}</span></div>
+                </div>
+            </div>
+            ${resumeData.summary ? `<div class="section"><h2 class="section-title">个人简介</h2><p class="summary-text">${resumeData.summary}</p></div>` : ''}
+            ${resumeData.educationList.length ? `<div class="section"><h2 class="section-title">教育背景</h2>${resumeData.educationList.map(e => `<div class="education-item"><div><div class="education-school">${e.school}</div><div class="education-major">${e.major} · ${e.degree}</div></div><div class="education-time">${e.startTime} - ${e.endTime}</div></div>`).join('')}</div>` : ''}
+            ${resumeData.workList.length ? `<div class="section"><h2 class="section-title">工作经历</h2>${resumeData.workList.map(w => `<div class="experience-item"><div class="experience-header"><div><span class="experience-company">${w.company}</span><span class="experience-position">${w.position}</span></div><span class="experience-time">${w.startTime} - ${w.endTime}</span></div><p class="experience-desc">${w.description}</p></div>`).join('')}</div>` : ''}
+            ${resumeData.projectList.length ? `<div class="section"><h2 class="section-title">项目经历</h2>${resumeData.projectList.map(p => `<div class="project-item"><div class="project-name">${p.name}</div><p class="project-desc">${p.description}</p></div>`).join('')}</div>` : ''}
+            ${resumeData.awardList.length ? `<div class="section"><h2 class="section-title">获奖情况</h2>${resumeData.awardList.map(a => `<div class="award-item"><div><div class="award-name">${a.name}</div><div class="award-org">${a.org}</div></div><div class="award-time">${a.time}</div></div>`).join('')}</div>` : ''}
+            ${resumeData.skills.length ? `<div class="section"><h2 class="section-title">专业技能</h2><div class="skills-container">${resumeData.skills.map(s => `<span class="skill-tag">${s}</span>`).join('')}</div></div>` : ''}
+        </div>
+    </div>
+</body>
+</html>`;
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
