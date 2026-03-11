@@ -239,10 +239,10 @@
 
         function initSupabase() {
             if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
-                if (!CONFIG || !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY) {
-                    console.error('Config not loaded. Please copy js/config.example.js to js/config.js and fill in your values.');
+                if (typeof CONFIG === 'undefined' || !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY) {
+                    console.error('Config not loaded');
                     document.getElementById('authMessage').className = 'auth-error';
-                    document.getElementById('authMessage').textContent = '配置文件缺失，请查看 js/config.example.js';
+                    document.getElementById('authMessage').textContent = '配置文件缺失';
                     return false;
                 }
                 supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
@@ -702,7 +702,8 @@
             setTimeout(() => toast.classList.remove('show'), 2000);
         }
 
-        window.onload = init;
+        // 页面加载完成后初始化
+        init();
     </script>
 </body>
 </html>
