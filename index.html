@@ -27,6 +27,16 @@
         .btn-primary { background: #fff; color: #667eea; }
         .btn-success { background: #27ae60; color: #fff; }
         .btn-danger { background: #e74c3c; color: #fff; }
+        .btn-ai { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: #fff; }
+        .btn-ai:disabled { opacity: 0.6; cursor: not-allowed; }
+        .ai-section { max-width: 900px; margin: 0 auto 20px; background: #fff; border-radius: 15px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .ai-title { font-size: 18px; color: #2c3e50; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        .ai-title-icon { font-size: 24px; }
+        .ai-input-wrapper { display: flex; gap: 10px; flex-wrap: wrap; }
+        .ai-textarea { flex: 1; min-width: 200px; padding: 15px; border: 2px solid #ecf0f1; border-radius: 10px; font-size: 14px; resize: vertical; min-height: 80px; font-family: inherit; }
+        .ai-textarea:focus { outline: none; border-color: #f5576c; }
+        .ai-btn-wrapper { display: flex; flex-direction: column; gap: 10px; }
+        .ai-status { font-size: 12px; color: #7f8c8d; text-align: center; }
         .container { max-width: 900px; margin: 0 auto; background: #fff; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
         .header { background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%); color: #fff; padding: 40px; text-align: center; }
         .avatar { width: 120px; height: 120px; border-radius: 50%; border: 4px solid #fff; background: #ecf0f1; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 48px; color: #bdc3c7; cursor: pointer; }
@@ -96,6 +106,19 @@
             <button class="btn-primary" id="toggleModeBtn">切换预览/编辑</button>
             <button class="btn-success" id="saveBtn">保存数据</button>
             <button class="btn-danger" id="resetBtn">重置数据</button>
+        </div>
+        <div class="ai-section">
+            <div class="ai-title">
+                <span class="ai-title-icon">🤖</span>
+                <span>AI 智能生成简历</span>
+            </div>
+            <div class="ai-input-wrapper">
+                <textarea class="ai-textarea" id="aiInput" placeholder="请输入您的个人简介，AI将自动为您生成一份完整的简历。&#10;&#10;例如：我叫张三，有5年前端开发经验，精通Vue和React，曾在阿里巴巴担任高级前端工程师..."></textarea>
+                <div class="ai-btn-wrapper">
+                    <button class="btn-ai" id="aiGenerateBtn">✨ AI生成简历</button>
+                    <div class="ai-status" id="aiStatus"></div>
+                </div>
+            </div>
         </div>
         <div class="container">
             <div class="header">
@@ -231,6 +254,7 @@
                     renderSkills();
                 }
             };
+            $('aiGenerateBtn').onclick = generateResumeWithAI;
         }
 
         function checkSession() {
@@ -526,6 +550,138 @@
                     renderSkills();
                 };
             }
+        }
+
+        function generateResumeWithAI() {
+            var input = $('aiInput').value.trim();
+            if (!input) {
+                showToast('请输入个人简介');
+                return;
+            }
+
+            if (!CONFIG.AI_API_KEY) {
+                showToast('AI API Key 未配置');
+                return;
+            }
+
+            var btn = $('aiGenerateBtn');
+            var status = $('aiStatus');
+            btn.disabled = true;
+            btn.textContent = '生成中...';
+            status.textContent = 'AI 正在分析您的信息...';
+
+            var prompt = '请根据以下个人简介，生成一份完整的简历信息。请严格按照JSON格式返回，不要包含任何其他文字说明。' +
+                '\n\n个人简介：' + input + '\n\n' +
+                '请返回以下JSON格式（只返回JSON，不要有其他内容）：\n' +
+                '{\n' +
+                '  "name": "姓名",\n' +
+                '  "jobTitle": "职位",\n' +
+                '  "phone": "电话",\n' +
+                '  "email": "邮箱",\n' +
+                '  "address": "地址",\n' +
+                '  "birthday": "出生年月",\n' +
+                '  "workYears": "工作年限",\n' +
+                '  "education": "学历",\n' +
+                '  "jobIntention": "求职意向",\n' +
+                '  "summary": "个人简介",\n' +
+                '  "educationList": [{"school":"学校","major":"专业","degree":"学位","startTime":"开始时间","endTime":"结束时间"}],\n' +
+                '  "workList": [{"company":"公司","position":"职位","startTime":"开始时间","endTime":"结束时间","description":"工作描述"}],\n' +
+                '  "projectList": [{"name":"项目名称","description":"项目描述"}],\n' +
+                '  "awardList": [{"name":"奖项名称","org":"颁发机构","time":"获奖时间"}],\n' +
+                '  "skills": ["技能1", "技能2"]\n' +
+                '}\n\n' +
+                '注意：1. 如果简介中没有某些信息，请根据上下文合理推断或留空 2. 时间格式如"2020年9月" 3. 只返回JSON，不要有任何其他文字';
+
+            var requestBody = {
+                model: 'glm-4-flash',
+                messages: [
+                    { role: 'user', content: prompt }
+                ],
+                temperature: 0.7
+            };
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', 'https://open.bigmodel.cn/api/paas/v4/chat/completions', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.setRequestHeader('Authorization', 'Bearer ' + CONFIG.AI_API_KEY);
+
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    btn.disabled = false;
+                    btn.textContent = '✨ AI生成简历';
+                    
+                    if (xhr.status === 200) {
+                        try {
+                            var response = JSON.parse(xhr.responseText);
+                            var content = response.choices[0].message.content;
+                            status.textContent = '正在解析简历数据...';
+                            
+                            var jsonMatch = content.match(/\{[\s\S]*\}/);
+                            if (jsonMatch) {
+                                var data = JSON.parse(jsonMatch[0]);
+                                fillResumeData(data);
+                                status.textContent = '简历生成成功！';
+                                showToast('AI简历生成成功！');
+                            } else {
+                                status.textContent = '解析失败，请重试';
+                                showToast('AI返回格式错误');
+                            }
+                        } catch (e) {
+                            status.textContent = '解析失败：' + e.message;
+                            showToast('解析失败，请重试');
+                        }
+                    } else {
+                        status.textContent = '请求失败：' + xhr.status;
+                        showToast('AI请求失败，请检查网络');
+                    }
+                }
+            };
+
+            xhr.onerror = function() {
+                btn.disabled = false;
+                btn.textContent = '✨ AI生成简历';
+                status.textContent = '网络错误';
+                showToast('网络错误，请重试');
+            };
+
+            status.textContent = '正在连接AI服务...';
+            xhr.send(JSON.stringify(requestBody));
+        }
+
+        function fillResumeData(data) {
+            if (data.name) { resumeData.name = data.name; $('name').value = data.name; }
+            if (data.jobTitle) { resumeData.jobTitle = data.jobTitle; $('jobTitle').value = data.jobTitle; }
+            if (data.phone) { resumeData.phone = data.phone; $('phone').value = data.phone; }
+            if (data.email) { resumeData.email = data.email; $('email').value = data.email; }
+            if (data.address) { resumeData.address = data.address; $('address').value = data.address; }
+            if (data.birthday) { resumeData.birthday = data.birthday; $('birthday').value = data.birthday; }
+            if (data.workYears) { resumeData.workYears = data.workYears; $('workYears').value = data.workYears; }
+            if (data.education) { resumeData.education = data.education; $('education').value = data.education; }
+            if (data.jobIntention) { resumeData.jobIntention = data.jobIntention; $('jobIntention').value = data.jobIntention; }
+            if (data.summary) { resumeData.summary = data.summary; $('summary').value = data.summary; }
+            if (data.avatar) { resumeData.avatar = data.avatar.substring(0, 2); $('avatar').textContent = resumeData.avatar; }
+            
+            if (data.educationList && data.educationList.length > 0) {
+                resumeData.educationList = data.educationList;
+            }
+            if (data.workList && data.workList.length > 0) {
+                resumeData.workList = data.workList;
+            }
+            if (data.projectList && data.projectList.length > 0) {
+                resumeData.projectList = data.projectList;
+            }
+            if (data.awardList && data.awardList.length > 0) {
+                resumeData.awardList = data.awardList;
+            }
+            if (data.skills && data.skills.length > 0) {
+                resumeData.skills = data.skills;
+            }
+            
+            renderList('educationList', resumeData.educationList, ['school', 'major', 'degree', 'startTime', 'endTime']);
+            renderList('workList', resumeData.workList, ['company', 'position', 'startTime', 'endTime', 'description']);
+            renderList('projectList', resumeData.projectList, ['name', 'description']);
+            renderList('awardList', resumeData.awardList, ['name', 'org', 'time']);
+            renderSkills();
         }
 
         function showToast(msg) {
