@@ -1,7 +1,4 @@
-// 此文件是配置模板，请复制为 config.js 并填入实际值
-const CONFIG = {
-    SUPABASE_URL: 'your-supabase-url',
-    SUPABASE_ANON_KEY: 'your-supabase-anon-key'
+var CONFIG = {
+    SUPABASE_URL: 'your-supabase-url-here',
+    SUPABASE_KEY: 'your-supabase-anon-key-here'
 };
-
-Object.freeze(CONFIG);

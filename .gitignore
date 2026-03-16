@@ -26,5 +26,9 @@ quick_setup.sql
 .env.local
 .env.*.local
 
+# 配置文件 - 包含敏感信息，绝不能上传！
+js/config.js
+
 # 保留模板文件
 !.env.example
+!js/config.example.js

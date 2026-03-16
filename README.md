@@ -15,37 +15,28 @@
 ### 1. 克隆仓库
 
 ```bash
-git clone https://github.com/你的用户名/resume-editor.git
+git clone https://github.com/a1a12de/resume-editor.git
 cd resume-editor
 ```
 
-### 2. 配置环境变量
+### 2. 配置 Supabase
 
+1. 复制配置模板：
 ```bash
-# 复制环境变量模板
-cp .env.example .env
-
-# 编辑 .env 文件，填入你的 Supabase 配置
+cp js/config.example.js js/config.js
 ```
 
-`.env` 文件内容：
-```
-VITE_SUPABASE_URL=你的Supabase项目URL
-VITE_SUPABASE_ANON_KEY=你的Supabase匿名密钥
-```
-
-### 3. 生成配置文件
-
-```bash
-# 安装 Node.js 后执行
-node build.js
+2. 编辑 `js/config.js`，填入你的 Supabase 配置：
+```javascript
+var CONFIG = {
+    SUPABASE_URL: '你的Supabase项目URL',
+    SUPABASE_KEY: '你的Supabase匿名密钥'
+};
 ```
 
-这会根据 `.env` 文件生成 `js/config.js`。
+### 3. 运行项目
 
-### 4. 运行项目
-
-直接在浏览器中打开 `resume.html` 文件，或使用本地服务器：
+直接在浏览器中打开 `index.html` 文件，或使用本地服务器：
 
 ```bash
 # 使用 Python
@@ -61,8 +52,8 @@ npx http-server
 2. 创建新项目或选择现有项目
 3. 进入 Project Settings → API
 4. 复制以下信息：
-   - **Project URL** → `VITE_SUPABASE_URL`
-   - **anon public key** → `VITE_SUPABASE_ANON_KEY`
+   - **Project URL** → `SUPABASE_URL`
+   - **anon public key** → `SUPABASE_KEY`
 
 ## 创建数据库表
 
@@ -100,23 +91,15 @@ CREATE POLICY "Users can update own resume" ON resumes FOR UPDATE USING (auth.ui
 CREATE POLICY "Users can delete own resume" ON resumes FOR DELETE USING (auth.uid() = user_id);
 ```
 
-## 部署
+## 在线访问
 
-### EdgeOne 部署
-
-1. 登录 [EdgeOne 控制台](https://console.edgeone.com/)
-2. 新建站点 → 选择 Git 部署
-3. 授权 GitHub 并选择此仓库
-4. 配置构建命令：`node build.js`
-5. 部署
-
-**注意**：部署前需要在 EdgeOne 的环境变量设置中添加：
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
+- **GitHub Pages**: https://a1a12de.github.io/resume-editor/
 
 ## 安全说明
 
-- `.env` 和 `js/config.js` 文件已添加到 `.gitignore`，不会上传到 GitHub
+⚠️ **重要**：
+- `js/config.js` 文件包含敏感信息，已添加到 `.gitignore`
+- **绝不要**将 `js/config.js` 上传到 GitHub
 - Supabase 的 `anon key` 是公开密钥，设计上可以暴露在前端
 - 数据安全由 Supabase 的 RLS (Row Level Security) 策略保护
 
