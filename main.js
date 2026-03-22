@@ -3,16 +3,12 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-console.log('Supabase URL:', supabaseUrl)
-console.log('Supabase Anon Key:', supabaseAnonKey ? 'Loaded' : 'Not loaded')
-
 if (!supabaseUrl || !supabaseAnonKey) {
   alert('配置缺失，请检查 .env 文件')
   throw new Error('配置缺失')
 }
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
-console.log('Supabase client created:', supabase ? 'Yes' : 'No')
 
 let currentUser = null
 let resumeId = null
@@ -50,21 +46,11 @@ function renderApp() {
       .auth-error { color: #e74c3c; margin-top: 15px; text-align: center; }
       .auth-success { color: #27ae60; margin-top: 15px; text-align: center; }
       .hidden { display: none !important; }
-      .toolbar { max-width: 900px; margin: 0 auto 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+      .toolbar { max-width: 900px; margin: 0 auto 20px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
       .toolbar button { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; }
       .btn-primary { background: #fff; color: #667eea; }
       .btn-success { background: #27ae60; color: #fff; }
       .btn-danger { background: #e74c3c; color: #fff; }
-      .btn-ai { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: #fff; }
-      .btn-ai:disabled { opacity: 0.6; cursor: not-allowed; }
-      .ai-section { max-width: 900px; margin: 0 auto 20px; background: #fff; border-radius: 15px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-      .ai-title { font-size: 18px; color: #2c3e50; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
-      .ai-title-icon { font-size: 24px; }
-      .ai-input-wrapper { display: flex; gap: 10px; flex-wrap: wrap; }
-      .ai-textarea { flex: 1; min-width: 200px; padding: 15px; border: 2px solid #ecf0f1; border-radius: 10px; font-size: 14px; resize: vertical; min-height: 80px; font-family: inherit; }
-      .ai-textarea:focus { outline: none; border-color: #f5576c; }
-      .ai-btn-wrapper { display: flex; flex-direction: column; gap: 10px; }
-      .ai-status { font-size: 12px; color: #7f8c8d; text-align: center; }
       .container { max-width: 900px; margin: 0 auto; background: #fff; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
       .header { background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%); color: #fff; padding: 40px; text-align: center; }
       .avatar { width: 120px; height: 120px; border-radius: 50%; border: 4px solid #fff; background: #ecf0f1; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 48px; color: #bdc3c7; cursor: pointer; }
@@ -131,19 +117,6 @@ function renderApp() {
         <button class="btn-primary" id="toggleModeBtn">切换预览/编辑</button>
         <button class="btn-success" id="saveBtn">保存数据</button>
         <button class="btn-danger" id="resetBtn">重置数据</button>
-      </div>
-      <div class="ai-section">
-        <div class="ai-title">
-          <span class="ai-title-icon">🤖</span>
-          <span>AI 智能生成简历</span>
-        </div>
-        <div class="ai-input-wrapper">
-          <textarea class="ai-textarea" id="aiInput" placeholder="请输入您的个人简介，AI将自动为您生成一份完整的简历。\n\n例如：我叫张三，有5年前端开发经验，精通Vue和React，曾在阿里巴巴担任高级前端工程师..."></textarea>
-          <div class="ai-btn-wrapper">
-            <button class="btn-ai" id="aiGenerateBtn">✨ AI生成简历</button>
-            <div class="ai-status" id="aiStatus"></div>
-          </div>
-        </div>
       </div>
       <div class="container">
         <div class="header">
@@ -249,36 +222,25 @@ function setupEventListeners() {
       renderSkills()
     }
   }
-  $('aiGenerateBtn').onclick = generateResumeWithAI
 }
 
 function checkSession() {
-  console.log('Checking session...')
   supabase.auth.getSession().then(function(res) {
-    console.log('Session check result:', res)
     if (res.data && res.data.session) {
       currentUser = res.data.session.user
-      console.log('User found:', currentUser)
       showMain()
       loadData()
-    } else {
-      console.log('No session found')
     }
-  }).catch(function(error) {
-    console.error('Session check error:', error)
   })
   
   supabase.auth.onAuthStateChange(function(event, session) {
-    console.log('Auth state changed:', event, session)
     if (event === 'SIGNED_IN' && session) {
       currentUser = session.user
-      console.log('User signed in:', currentUser)
       showMain()
       loadData()
     } else if (event === 'SIGNED_OUT') {
       currentUser = null
       resumeId = null
-      console.log('User signed out')
       showAuth()
     }
   })
@@ -294,61 +256,40 @@ function switchTab(tab) {
 
 function handleLogin(e) {
   e.preventDefault()
-  const email = $('loginEmail').value
-  const password = $('loginPassword').value
-  console.log('Login attempt with email:', email)
-  
   $('authMessage').className = 'auth-error'
   $('authMessage').textContent = '登录中...'
   
   supabase.auth.signInWithPassword({
-    email: email,
-    password: password
+    email: $('loginEmail').value,
+    password: $('loginPassword').value
   }).then(function(res) {
-    console.log('Login result:', res)
     if (res.error) {
-      console.error('Login error:', res.error)
       $('authMessage').textContent = res.error.message
     } else {
-      console.log('Login success:', res.data)
       $('authMessage').textContent = ''
     }
-  }).catch(function(error) {
-    console.error('Login catch error:', error)
-    $('authMessage').textContent = '登录失败：' + error.message
   })
 }
 
 function handleRegister(e) {
   e.preventDefault()
-  const email = $('registerEmail').value
-  const password = $('registerPassword').value
-  console.log('Register attempt with email:', email)
-  
   $('authMessage').className = 'auth-error'
   $('authMessage').textContent = '注册中...'
   
   supabase.auth.signUp({
-    email: email,
-    password: password
+    email: $('registerEmail').value,
+    password: $('registerPassword').value
   }).then(function(res) {
-    console.log('Register result:', res)
     if (res.error) {
-      console.error('Register error:', res.error)
       $('authMessage').textContent = res.error.message
     } else {
-      console.log('Register success:', res.data)
       $('authMessage').className = 'auth-success'
       $('authMessage').textContent = '注册成功！请查收验证邮件。'
     }
-  }).catch(function(error) {
-    console.error('Register catch error:', error)
-    $('authMessage').textContent = '注册失败：' + error.message
   })
 }
 
 function handleLogout() {
-  console.log('Logging out...')
   supabase.auth.signOut()
 }
 
@@ -365,9 +306,7 @@ function showMain() {
 
 function loadData() {
   if (!currentUser) return
-  console.log('Loading data for user:', currentUser.id)
   supabase.from('resumes').select('*').eq('user_id', currentUser.id).single().then(function(res) {
-    console.log('Load data result:', res)
     if (res.data) {
       resumeId = res.data.id
       resumeData = {
@@ -390,8 +329,6 @@ function loadData() {
       }
     }
     renderAll()
-  }).catch(function(error) {
-    console.error('Load data error:', error)
   })
 }
 
@@ -427,16 +364,12 @@ function saveData() {
   }
 
   promise.then(function(res) {
-    console.log('Save data result:', res)
     if (res.error) {
       showToast('保存失败: ' + res.error.message)
     } else {
       if (res.data) resumeId = res.data.id
       showToast('保存成功')
     }
-  }).catch(function(error) {
-    console.error('Save data error:', error)
-    showToast('保存失败: ' + error.message)
   })
 }
 
@@ -584,107 +517,6 @@ function renderSkills() {
       renderSkills()
     }
   }
-}
-
-function generateResumeWithAI() {
-  var input = $('aiInput').value.trim()
-  if (!input) {
-    showToast('请输入个人简介')
-    return
-  }
-
-  var btn = $('aiGenerateBtn')
-  var status = $('aiStatus')
-  btn.disabled = true
-  btn.textContent = '生成中...'
-  status.textContent = 'AI 正在分析您的信息...'
-
-  fetch('/api/generate-resume', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ input: input })
-  })
-  .then(function(response) {
-    if (!response.ok) {
-      throw new Error('请求失败: ' + response.status)
-    }
-    return response.json()
-  })
-  .then(function(data) {
-    console.log('AI response:', data)
-    btn.disabled = false
-    btn.textContent = '✨ AI生成简历'
-    
-    if (data.error) {
-      status.textContent = '错误: ' + data.error
-      showToast('AI生成失败')
-      return
-    }
-    
-    status.textContent = '正在解析简历数据...'
-    
-    try {
-      var content = data.content
-      var jsonMatch = content.match(/\{[\s\S]*\}/)
-      if (jsonMatch) {
-        var resumeResult = JSON.parse(jsonMatch[0])
-        fillResumeData(resumeResult)
-        status.textContent = '简历生成成功！'
-        showToast('AI简历生成成功！')
-      } else {
-        status.textContent = '解析失败，请重试'
-        showToast('AI返回格式错误')
-      }
-    } catch (e) {
-      status.textContent = '解析失败：' + e.message
-      showToast('解析失败，请重试')
-    }
-  })
-  .catch(function(error) {
-    console.error('AI request error:', error)
-    btn.disabled = false
-    btn.textContent = '✨ AI生成简历'
-    status.textContent = '网络错误'
-    showToast('网络错误，请重试')
-  })
-}
-
-function fillResumeData(data) {
-  if (data.name) { resumeData.name = data.name; $('name').value = data.name }
-  if (data.jobTitle) { resumeData.jobTitle = data.jobTitle; $('jobTitle').value = data.jobTitle }
-  if (data.phone) { resumeData.phone = data.phone; $('phone').value = data.phone }
-  if (data.email) { resumeData.email = data.email; $('email').value = data.email }
-  if (data.address) { resumeData.address = data.address; $('address').value = data.address }
-  if (data.birthday) { resumeData.birthday = data.birthday; $('birthday').value = data.birthday }
-  if (data.workYears) { resumeData.workYears = data.workYears; $('workYears').value = data.workYears }
-  if (data.education) { resumeData.education = data.education; $('education').value = data.education }
-  if (data.jobIntention) { resumeData.jobIntention = data.jobIntention; $('jobIntention').value = data.jobIntention }
-  if (data.summary) { resumeData.summary = data.summary; $('summary').value = data.summary }
-  if (data.avatar) { resumeData.avatar = data.avatar.substring(0, 2); $('avatar').textContent = resumeData.avatar }
-  
-  if (data.educationList && data.educationList.length > 0) {
-    resumeData.educationList = data.educationList
-  }
-  if (data.workList && data.workList.length > 0) {
-    resumeData.workList = data.workList
-  }
-  if (data.projectList && data.projectList.length > 0) {
-    resumeData.projectList = data.projectList
-  }
-  if (data.awardList && data.awardList.length > 0) {
-    resumeData.awardList = data.awardList
-  }
-  if (data.skills && data.skills.length > 0) {
-    resumeData.skills = data.skills
-  }
-  
-  renderList('educationList', resumeData.educationList, ['school', 'major', 'degree', 'startTime', 'endTime'])
-  renderList('workList', resumeData.workList, ['company', 'position', 'startTime', 'endTime', 'description'])
-  renderList('projectList', resumeData.projectList, ['name', 'description'])
-  renderList('awardList', resumeData.awardList, ['name', 'org', 'time'])
-  renderSkills()
 }
 
 function showToast(msg) {
